@@ -57,10 +57,10 @@ If you face any issues or need support, feel free to [open an issue](https://git
 
 ---
 
-## 🪄 License
+<!--## 🪄 License
 
 This project is licensed under the [MIT License](LICENSE).
-
+-->
 ---
 
 > Made with 💻 + ☕ by [Ritik Barnwal](https://ritikbarnwal.in) — Owner of [MyServerHelper](https://myserverhelper.com)
