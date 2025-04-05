@@ -46,10 +46,10 @@ chmod +x ghost-installer.sh
 **Ritik Barnwal**  
 🚀 Developer • 🛠 Server Admin • 💡 Tech Enthusiast  
 🌐 Website: [ritikbarnwal.in](https://ritikbarnwal.in)  
-📧 Email: [ritikbarnwal@pm.me](mailto:ritikbarnwal@pm.me)  
-📸 Instagram: [@ritikbarnwal.in](https://instagram.com/ritikbarnwal.in)  
-🐦 Twitter/X: [@ritikbarnwal__](https://twitter.com/ritikbarnwal__)  
-💬 LinkedIn: [ritikbarnwal](https://www.linkedin.com/in/ritikbarnwal)
+📧 Email: [ritikbarnwal@pm.me](mailto:hello@myserverhelper.com)  
+📸 Instagram: [@ritik121sk](https://instagram.com/ritik121sk)  
+<!--🐦 Twitter/X: [@ritikbarnwal__](https://twitter.com/ritikbarnwal__)  
+💬 LinkedIn: [ritikbarnwal](https://www.linkedin.com/in/ritikbarnwal)-->
 
 ### 🙋 Need Help?
 
