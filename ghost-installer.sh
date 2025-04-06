@@ -74,7 +74,7 @@ set -e
 
 cd "$INSTALL_DIR"
 
-ghost install \\
+ghost install --version latest \\
   --db mysql \\
   --dbhost localhost \\
   --dbuser "$GHOST_DB_USER" \\
@@ -86,7 +86,7 @@ ghost install \\
   --no-setup-ssl
 
 echo "✅ Setting up systemd service for Ghost..."
-sudo ghost setup systemd
+ghost setup systemd
 
 echo "✅ Setting up NGINX config..."
 sudo tee /etc/nginx/sites-available/ghost <<NGINX
