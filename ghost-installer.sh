@@ -47,31 +47,37 @@ echo ""
 # === PREPARE SYSTEM ===
 echo "✅ Updating system & installing dependencies..."
 sudo apt update && sudo apt upgrade -y
-sudo apt install -y nginx mysql-server unzip curl ca-certificates sudo python3-certbot-nginx build-essential
+sudo apt install -y nginx mysql-server unzip curl ca-certificates sudo python3-certbot-nginx build-essential ufw
+
+# === Enable UFW ports for HTTP/HTTPS ===
+sudo ufw allow 'Nginx Full' || true
 
 # === INSTALL NODE + GHOST-CLI ===
 echo "✅ Installing Node.js v20 LTS and Ghost CLI..."
 sudo apt install -y nodejs npm
 sudo npm install -g n
 sudo n 20
+sudo cp -r /usr/local/n/versions/node/20 /usr/
+echo 'export PATH="/usr/local/n/versions/node/20/bin:$PATH"' | sudo tee -a /etc/profile.d/node20.sh
+sudo chmod +x /etc/profile.d/node20.sh
+source /etc/profile.d/node20.sh
 sudo ln -sf /usr/local/bin/node /usr/bin/node
 sudo ln -sf /usr/local/bin/npm /usr/bin/npm
 sudo npm install -g ghost-cli
 
-export PATH="/usr/local/n/versions/node/20/bin:$PATH"
-hash -r
-node -v
+echo "Node Version: $(node -v)"
+echo "Ghost CLI Version: $(ghost --version)"
 
 # === MYSQL SETUP ===
 echo "✅ Configuring MySQL..."
 
-# Set root password and authentication method
-cat <<EOF | sudo mysql -u root -p
+# Set root password and auth method
+cat <<EOF | sudo mysql -u root -p"${MYSQL_ROOT_PASSWORD}"
 ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY '${MYSQL_ROOT_PASSWORD}';
 FLUSH PRIVILEGES;
 EOF
 
-# Create Ghost database and user
+# Create Ghost DB + user
 cat <<EOF > /tmp/ghost-db.sql
 CREATE DATABASE IF NOT EXISTS \`${GHOST_DB_NAME}\`;
 CREATE USER IF NOT EXISTS '${GHOST_DB_USER}'@'localhost' IDENTIFIED BY '${MYSQL_GHOST_PASSWORD}';
@@ -81,6 +87,8 @@ EOF
 
 sudo mysql -u root -p"${MYSQL_ROOT_PASSWORD}" < /tmp/ghost-db.sql
 rm /tmp/ghost-db.sql
+
+sudo systemctl enable mysql
 
 # === CREATE INSTALL DIR ===
 echo "✅ Creating installation directory..."
@@ -94,51 +102,27 @@ INSTALL_SCRIPT=$(cat <<EOF
 set -e
 
 export PATH="/usr/local/n/versions/node/20/bin:\$PATH"
-cd "$INSTALL_DIR"
-
-ghost install \\
-  --db mysql \\
-  --dbhost localhost \\
-  --dbuser "$GHOST_DB_USER" \\
-  --dbpass "$MYSQL_GHOST_PASSWORD" \\
-  --dbname "$GHOST_DB_NAME" \\
-  --url "https://$GHOST_DOMAIN" \\
-  --no-prompt \\
-  --no-setup-nginx \\
-  --no-setup-ssl
-
-echo "✅ Setting up systemd service for Ghost..."
-ghost setup systemd 
-
-echo "✅ Creating NGINX config..."
-sudo tee /etc/nginx/sites-available/ghost <<NGINX
-server {
-    listen 80;
-    server_name $GHOST_DOMAIN;
-
-    location / {
-        proxy_pass http://127.0.0.1:2368;
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-    }
-}
-NGINX
-
-sudo ln -sf /etc/nginx/sites-available/ghost /etc/nginx/sites-enabled/
-sudo nginx -t && sudo systemctl restart nginx
-
-echo "✅ Installing SSL via Certbot..."
-sudo certbot --nginx -d "$GHOST_DOMAIN" --non-interactive --agree-tos -m "admin@$GHOST_DOMAIN"
+cd "/var/www/$DOMAIN_NAME"
 
 echo ""
-echo "=========================================="
-echo " ✅ INSTALLATION COMPLETE"
-echo "=========================================="
-echo " 🌐 URL: https://$GHOST_DOMAIN"
-echo " 🔐 Admin: https://$GHOST_DOMAIN/ghost"
-echo " 📁 Directory: $INSTALL_DIR"
+echo "🚀 You can now run the following command to install Ghost:"
+echo ""
+echo "ghost install \\\\"
+echo "  --db mysql \\\\"
+echo "  --dbhost localhost \\\\"
+echo "  --dbuser '$GHOST_DB_USER' \\\\"
+echo "  --dbpass '$MYSQL_GHOST_PASSWORD' \\\\"
+echo "  --dbname '$GHOST_DB_NAME' \\\\"
+echo "  --url 'https://$GHOST_DOMAIN' \\\\"
+echo "  --no-prompt \\\\"
+echo "  --no-setup-nginx \\\\"
+echo "  --no-setup-ssl"
+echo ""
+echo "👉 After that, run:"
+echo "  ghost setup systemd"
+echo "  ghost setup nginx"
+echo "  ghost setup ssl"
+echo ""
 EOF
 )
 
@@ -146,6 +130,13 @@ echo "$INSTALL_SCRIPT" | sudo tee "/home/$SYS_USER/install_ghost.sh" > /dev/null
 sudo chmod +x "/home/$SYS_USER/install_ghost.sh"
 sudo chown "$SYS_USER:$SYS_USER" "/home/$SYS_USER/install_ghost.sh"
 
-# === SWITCH USER & EXECUTE ===
-echo "🚀 Switching to user $SYS_USER to finish Ghost installation..."
-sudo -u "$SYS_USER" bash "/home/$SYS_USER/install_ghost.sh"
+# === FINISH ===
+echo ""
+echo "=========================================="
+echo "✅ Ghost environment is ready!"
+echo ""
+echo "👤 Switch to user: sudo su - $SYS_USER"
+echo "🚀 Run Ghost installer: bash ~/install_ghost.sh"
+echo ""
+echo "📝 Then complete SSL & Nginx setup from within Ghost CLI."
+echo "=========================================="
