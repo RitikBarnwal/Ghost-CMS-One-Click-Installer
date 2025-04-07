@@ -32,6 +32,11 @@ sudo usermod -aG sudo "$SYS_USER"
 # === MYSQL CREDS ===
 read -rsp "Enter MySQL root password: " MYSQL_ROOT_PASSWORD
 echo ""
+if [[ -z "$MYSQL_ROOT_PASSWORD" ]]; then
+  echo "❌ MySQL root password cannot be empty. Exiting."
+  exit 1
+fi
+
 read -rp "Enter Ghost database name [ghost_db]: " GHOST_DB_NAME
 GHOST_DB_NAME=${GHOST_DB_NAME:-ghost_db}
 read -rp "Enter Ghost DB user [ghost_user]: " GHOST_DB_USER
@@ -46,34 +51,36 @@ sudo apt install -y nginx mysql-server unzip curl ca-certificates sudo python3-c
 
 # === INSTALL NODE + GHOST-CLI ===
 echo "✅ Installing Node.js v20 LTS and Ghost CLI..."
-
-# Step 1: Install temporary Node.js and npm
 sudo apt install -y nodejs npm
-
-# Step 2: Install 'n' and use it to get Node.js v20 LTS
 sudo npm install -g n
 sudo n 20
-
-# Step 3: Re-link node and npm to the updated Node.js path
 sudo ln -sf /usr/local/bin/node /usr/bin/node
 sudo ln -sf /usr/local/bin/npm /usr/bin/npm
-
-# Step 4: Install Ghost CLI globally
 sudo npm install -g ghost-cli
 
-# Fix path issue for node
 export PATH="/usr/local/n/versions/node/20/bin:$PATH"
 hash -r
-
-# Confirm Node version
 node -v
 
 # === MYSQL SETUP ===
 echo "✅ Configuring MySQL..."
-sudo mysql -e "ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY '${MYSQL_ROOT_PASSWORD}'; FLUSH PRIVILEGES;"
-sudo mysql -uroot -p"${MYSQL_ROOT_PASSWORD}" -e "CREATE DATABASE ${GHOST_DB_NAME};"
-sudo mysql -uroot -p"${MYSQL_ROOT_PASSWORD}" -e "CREATE USER '${GHOST_DB_USER}'@'localhost' IDENTIFIED BY '${MYSQL_GHOST_PASSWORD}';"
-sudo mysql -uroot -p"${MYSQL_ROOT_PASSWORD}" -e "GRANT ALL PRIVILEGES ON ${GHOST_DB_NAME}.* TO '${GHOST_DB_USER}'@'localhost'; FLUSH PRIVILEGES;"
+
+# Set root password and authentication method
+cat <<EOF | sudo mysql -u root -p
+ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY '${MYSQL_ROOT_PASSWORD}';
+FLUSH PRIVILEGES;
+EOF
+
+# Create Ghost database and user
+cat <<EOF > /tmp/ghost-db.sql
+CREATE DATABASE IF NOT EXISTS \`${GHOST_DB_NAME}\`;
+CREATE USER IF NOT EXISTS '${GHOST_DB_USER}'@'localhost' IDENTIFIED BY '${MYSQL_GHOST_PASSWORD}';
+GRANT ALL PRIVILEGES ON \`${GHOST_DB_NAME}\`.* TO '${GHOST_DB_USER}'@'localhost';
+FLUSH PRIVILEGES;
+EOF
+
+sudo mysql -u root -p"${MYSQL_ROOT_PASSWORD}" < /tmp/ghost-db.sql
+rm /tmp/ghost-db.sql
 
 # === CREATE INSTALL DIR ===
 echo "✅ Creating installation directory..."
@@ -89,11 +96,6 @@ set -e
 export PATH="/usr/local/n/versions/node/20/bin:\$PATH"
 cd "$INSTALL_DIR"
 
-# 🛠️ Fix known Ghost-CLI version error
-unset GHOST_VERSION
-rm -rf ~/.ghost
-
-# 🚀 Run Ghost install
 ghost install \\
   --db mysql \\
   --dbhost localhost \\
@@ -140,7 +142,6 @@ echo " 📁 Directory: $INSTALL_DIR"
 EOF
 )
 
-# Save the install script
 echo "$INSTALL_SCRIPT" | sudo tee "/home/$SYS_USER/install_ghost.sh" > /dev/null
 sudo chmod +x "/home/$SYS_USER/install_ghost.sh"
 sudo chown "$SYS_USER:$SYS_USER" "/home/$SYS_USER/install_ghost.sh"
