@@ -61,16 +61,12 @@ sudo ln -sf /usr/local/bin/npm /usr/bin/npm
 # Step 4: Install Ghost CLI globally
 sudo npm install -g ghost-cli
 
-
 # Fix path issue for node
 export PATH="/usr/local/n/versions/node/20/bin:$PATH"
 hash -r
 
 # Confirm Node version
 node -v
-
-# Install Ghost CLI
-sudo npm install -g ghost-cli
 
 # === MYSQL SETUP ===
 echo "✅ Configuring MySQL..."
@@ -93,6 +89,11 @@ set -e
 export PATH="/usr/local/n/versions/node/20/bin:\$PATH"
 cd "$INSTALL_DIR"
 
+# 🛠️ Fix known Ghost-CLI version error
+unset GHOST_VERSION
+rm -rf ~/.ghost
+
+# 🚀 Run Ghost install
 ghost install \\
   --db mysql \\
   --dbhost localhost \\
