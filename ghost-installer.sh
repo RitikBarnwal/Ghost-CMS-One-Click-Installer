@@ -44,10 +44,23 @@ echo "✅ Updating system & installing dependencies..."
 sudo apt update && sudo apt upgrade -y
 sudo apt install -y nginx mysql-server unzip curl ca-certificates sudo python3-certbot-nginx build-essential
 
-# === INSTALL NODE 20 + GHOST CLI ===
+# === INSTALL NODE + GHOST-CLI ===
 echo "✅ Installing Node.js v20 LTS and Ghost CLI..."
+
+# Step 1: Install temporary Node.js and npm
+sudo apt install -y nodejs npm
+
+# Step 2: Install 'n' and use it to get Node.js v20 LTS
 sudo npm install -g n
 sudo n 20
+
+# Step 3: Re-link node and npm to the updated Node.js path
+sudo ln -sf /usr/local/bin/node /usr/bin/node
+sudo ln -sf /usr/local/bin/npm /usr/bin/npm
+
+# Step 4: Install Ghost CLI globally
+sudo npm install -g ghost-cli
+
 
 # Fix path issue for node
 export PATH="/usr/local/n/versions/node/20/bin:$PATH"
